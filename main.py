@@ -3,14 +3,7 @@ import requests
 import subprocess
 import os
 from git import Repo
-import openai
-from dotenv import load_dotenv
-from openai import OpenAI
-
-load_dotenv()
-
-open_ai=os.environ["OPENAI_API_KEY"]
-client=OpenAI(api_key=open_ai)
+from query_llm import generate_code_changes
 
 # Function to get the default branch of the repository
 def get_default_branch(repo_url, token):
@@ -62,23 +55,6 @@ def create_pull_request(repo_url, token, source_branch, destination_branch):
         return response.json()  # Return PR details
     else:
         return response.json()  # Return error detail
-    
-
-
-# Function to generate code changes using OpenAI GPT-4
-def generate_code_changes(prompt, code):
-    openai.api_key = open_ai
-    messages = [
-            {"role": "system", "content": "You are a helpful assistant that modifies code. When given a prompt, you should only modify code to the relevant code files of the prompt provided . Do not remove, change, or add anything else outside of the specified instructions. If no relevant modification is found in the code file provided, strictly return the code of that file as it was before and also do not add any comments or anything in it. Strictly Do not add any comments or code blocks that start with '''python''' or any other programming language. Also, strictly make sure that the code snippets and the image links are not cut off."},
-            {"role": "user", "content": f"Here is the current code: {code}\nMake the following changes: {prompt}"},
-    ]
-    response = client.chat.completions.create(
-        model="gpt-4o-mini",
-        messages=messages,
-        temperature=0.7,
-        max_tokens=1500,
-    )
-    return response.choices[0].message.content
 
 # Streamlit UI
 st.title("GitHub Pull Request Creator")
