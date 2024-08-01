@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 open_ai_key=os.environ["OPENAI_API_KEY"]
+model=os.environ["MODEL"]
+Temperature=os.environ["TEMPERATURE"]
+Max_tokens=os.environ["MAX_TOKENS"]
 
 client=OpenAI(api_key=open_ai_key)
 
@@ -17,9 +20,9 @@ def generate_code_changes(prompt, code):
             {"role": "user", "content": f"Here is the current code: {code}\nMake the following changes: {prompt}"},
     ]
     response = client.chat.completions.create(
-        model="gpt-4o-mini",
+        model=model,
         messages=messages,
-        temperature=0.2,
-        max_tokens=5000,
+        temperature=float(Temperature),
+        max_tokens=int(Max_tokens),
     )
     return response.choices[0].message.content

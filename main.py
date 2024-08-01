@@ -90,7 +90,7 @@ if st.button("Create Pull Request"):
             repo.git.checkout('-b', new_branch)
             
             # Generate code changes based on the user's prompt
-            code_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(repo_dir) for f in filenames if f.endswith(('.py', '.js', '.html', '.css')) and '.git' not in dp]
+            code_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(repo_dir) for f in filenames if f.endswith(('.py', '.js', '.html', '.css','.tsx', '.jsx','.scss','.ts')) and '.git' not in dp]
             for file in code_files:
                 with open(file, "r") as f:
                     original_code = f.read()
