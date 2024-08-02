@@ -4,6 +4,7 @@ import subprocess
 import os
 from git import Repo
 from query_llm import generate_code_changes
+import shutil
 
 # Function to get the default branch of the repository
 def get_default_branch(repo_url, token):
@@ -110,3 +111,5 @@ if st.button("Create Pull Request"):
                 st.write(f"PR URL: {result['html_url']}")
             else:
                 st.error(f"Error creating Pull Request: {result.get('message', 'Unknown error')}")
+            shutil.rmtree(repo_dir)
+            st.info("Temporary files and directories have been deleted.")
