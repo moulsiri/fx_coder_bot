@@ -55,7 +55,7 @@ def prepare_embeddings(repo_dir):
 
     return temp_file.name
 
-def retrieve_relevant_code(prompt, temp_file_name, top_k=5):
+def retrieve_relevant_code(prompt, temp_file_name, top_k=10):
     with open(temp_file_name, 'rb') as f:
         texts, index, file_chunks = pickle.load(f)
 
