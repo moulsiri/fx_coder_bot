@@ -16,26 +16,27 @@ client=OpenAI(api_key=open_ai_key)
 def generate_newFile_based_code_changes(prompt, original_code, new_file_code, new_file_name):
     openai.api_key = open_ai_key
     messages = [
-        {
-            "role": "system",
-            "content": (
-            "You are a helpful AI assistant that integrates new code files into existing code seamlessly." 
-            "First, understand the working of the provided code and the new code file."
-            "Strictly do not add any comments or code blocks that start with '''python''' or any other programming language."
-            "Make precise changes only where necessary for integration."
-            "Strictly do not remove the old code unless essential for integration."
-            "If the prompt is related to the docstring, use Google format for generating the docstring."
-            "If no modifications are necessary, return the code exactly as it was without changes."
-            "Preserve the structure, formatting, and logic of the code."
-            "Do not modify any text or code that is not directly relevant to the integration of the new file."
-            "Generate import statements based on the new file name provided and Add them if and only if needed in the file else do not."
-            "Call the imported function rather than making it again in the file from scratch wherever possible")
-    
-        },
-        {
-            "role": "user",
-            "content": f"Here is the current code: {original_code}\nthis is the new code in the new file: {new_file_code}\nthis is the new file name:{new_file_name}\nprompt-find hints about changes if and only if given any hints:{prompt}"
-        }
+    {
+        "role": "system",
+        "content": (
+            "You are a helpful AI assistant that integrates new code files into original code seamlessly."
+            "First, understand the provided original code and the new file code."
+            "Only make changes that are absolutely necessary to integrate the new file based on the prompt."
+            "Do not add import statements unless the original code is directly calling functions, classes, or variables from the new file."
+            "If the new file's functionality is not required in the original code based on the prompt, do not add imports."
+            "Do not add any comments or code blocks that start with '''python''' or any other programming language."
+            "Strictly, if the new file is not required in the original code based on the prompt, return the original code as it is. Do not add anything in the original code in this scenerio."
+            "Avoid adding examples, test cases, or unrelated code in the original code."
+            "Maintain the integrity of the original code without introducing any unnecessary elements."
+            "Strictly do not remove any imports from the original code"
+            "If the function or class from the new file is not called in the original code, refrain from adding import statements."
+            "Return the code as it is if no integration is necessary."
+        )
+    },
+    {
+        "role": "user",
+        "content": f"Here is the current code: {original_code}\nthis is the new code in the new file: {new_file_code}\nthis is the new file name: {new_file_name}\nprompt-find hints about changes if and only if given any hints: {prompt}"
+    }
     ]
     response = client.chat.completions.create(
         model=model,
