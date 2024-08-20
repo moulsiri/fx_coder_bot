@@ -46,4 +46,8 @@ def generate_newFile_based_code_changes(prompt, original_code, new_file_code, ne
         temperature=float(Temperature),
         max_tokens=int(Max_tokens),
     )
+    input_token = response.usage.prompt_tokens
+    output_token = response.usage.completion_tokens
+    with open("token_tracker.txt", "a") as tt:
+        tt.write("\n Input token: " + str(input_token) + " output token: " + str(output_token))
     return response.choices[0].message.content
