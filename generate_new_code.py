@@ -4,7 +4,6 @@ from openai import OpenAI
 from dotenv import load_dotenv
 import re
 from generate_file_name_and_extension import generate_FileName_and_extension
-
 load_dotenv()
 open_ai_key=os.environ["OPENAI_API_KEY"]
 model=os.environ["MODEL"]
