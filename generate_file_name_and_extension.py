@@ -22,6 +22,7 @@ def generate_FileName_and_extension(code):
             "You are a helpful AI assistant that generates relevant file name and extension based on the code provided"
             "If the code is related to the readme file then give the file name as README.md"
             "If the code is related to the Dockerfile then name that file as Dockerfile"
+            "If the code is related to fastapi then name that file as app.py"
             "If the code is related to the requirements then name that file as requirements.txt"
             "Based on this code below,give me a relevant file name for the code and the extension in this format file_name,extension strictly excluding the '.' in extension")
         },
