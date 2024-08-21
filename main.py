@@ -1,10 +1,8 @@
 import os
 import streamlit as st
 import requests
-from services.query_llm import generate_code_changes
-from services.integrate_new_code import generate_newFile_based_code_changes
-from services.generate_new_code import create_new_file
 from utils.utils import *
+
 # Streamlit UI
 st.title("GitHub Pull Request Creator")
 repo_url = st.text_input("GitHub Repository URL", "")
@@ -14,9 +12,12 @@ destination_branch = st.text_input("Destination Branch (leave empty to use defau
 action = st.radio("Action", ("Modify existing files", "Create a new file"))
 prompt = st.text_area("Prompt", "")
 on = st.toggle("Resync")
+
+
 if st.button("delete temp file"):
     response = requests.post(f'{os.environ["Base_Url"]}/delete_temp_file/', json={'repo_url': repo_url})
-    # Optionally, handle the response.
+    # handled the response.
+    st.info(response)
     if response.status_code == 200:
         st.success("Temporary file deleted successfully.")
     else:
@@ -36,7 +37,8 @@ if st.button('Create Pull Request'):
     }
     
     response = requests.post(f'{os.environ["Base_Url"]}/create_pull_request/',json=json_to_pass)
-    # Optionally, handle the response.
+    st.info(response)
+    # handled the response.
     if response.status_code == 200:
         st.success("PR created Successfully")
     else:

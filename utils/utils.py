@@ -12,8 +12,15 @@ import psutil
 import logging
 import re
 import shutil
-from git import Repo, GitCommandError
 import requests
+from git import Repo, GitCommandError
+from services.query_llm import generate_code_changes
+from services.integrate_new_code import generate_newFile_based_code_changes
+from services.generate_new_code import create_new_file
+from models import PullRequestRequest, Credentials
+
+
+
 load_dotenv()
 open_ai_key=os.environ["OPENAI_API_KEY"]
 embedding_model = os.environ["EMBEDDING_MODEL"]
@@ -21,11 +28,84 @@ client=OpenAI(api_key=open_ai_key)
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 logging.basicConfig(level=logging.DEBUG)
 
-# Function to get the default branch of the repository
-def get_default_branch(repo_url, token):
+
+
+def handle_validation(credentials: Credentials):
+    headers = {
+        "Authorization": f"token {credentials.access_token}"
+    }
+    # Get authenticated user info
+    user_data = validate_user_data(headers)
+    if not user_data:
+        # raise HTTPException(status_code=401, detail="Invalid token or unable to fetch user info")
+        return 1
+    
+    # Check if the authenticated username matches the provided username
+    if user_data['login'] != credentials.username:
+        # raise HTTPException(status_code=401, detail="Token does not belong to the provided username")
+        return 2
+    
+    # Check if the repository is accessible by the authenticated user
+    repo_owner,repo_name  = parse_repo_url(credentials.repo_url)
+    repo_response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}", headers=headers)
+    
+    if repo_response.status_code == 200:
+        # Check if the user has the necessary permissions
+        repo_data = repo_response.json()
+        if repo_data['private'] and not repo_data['permissions']['admin'] and not repo_data['permissions']['push'] and not repo_data['permissions']['pull']:
+            # raise HTTPException(status_code=403, detail="User does not have the required permissions to access the repository")
+            return 3
+        # return {"status": "valid"}
+        return 0
+    else:
+        # raise HTTPException(status_code=401, detail="Invalid credentials or repository not accessible")
+        return 4
+
+def validate_user_data(headers):
+    user_response = requests.get("https://api.github.com/user", headers=headers)
+    if user_response.status_code != 200:
+        return None
+
+    user_data = user_response.json()
+    return user_data
+
+def modify_existing_files(relevant_files, prompt):
+    for file_path in relevant_files:
+        with open(file_path, "r") as f:
+            original_code = f.read()
+        changes = generate_code_changes(prompt, original_code)
+        with open(file_path, "w") as f:
+            f.write(changes)
+        
+def create_and_integrate_new_file(relevant_files, prompt, repo_dir):
+    new_file_path = create_new_file(prompt, repo_dir)
+    new_file_name = new_file_path.split(os.sep)[-1]
+    with open(new_file_path, "r") as f:
+        new_file_code = f.read()
+    for file_path in relevant_files:
+        with open(file_path, "r") as f:
+            original_code = f.read()
+        changes = generate_newFile_based_code_changes(prompt,original_code, new_file_code,new_file_name)
+        with open(file_path, "w") as f:
+            f.write(changes)
+
+def parse_repo_url(repo_url: str) -> tuple[str, str]:
+
+    # Remove trailing slashes and split the URL by '/'
     repo_parts = repo_url.rstrip('/').split('/')
+    
+    # Extract the repository owner and name
+    if len(repo_parts) < 2:
+        raise ValueError("Invalid repository URL format")
+    
     repo_owner = repo_parts[-2]
     repo_name = repo_parts[-1]
+    
+    return repo_owner, repo_name
+# Function to get the default branch of the repository
+def get_default_branch(repo_url, token):
+    
+    repo_owner,repo_name  = parse_repo_url(repo_url)
     api_url = f'https://api.github.com/repos/{repo_owner}/{repo_name}'
     headers = {
         'Authorization': f'token {token}',
@@ -106,9 +186,10 @@ def push_changes(repo, remote_name, branch_name, token):
         logging.error(f"Error pushing to remote: {e}")
         raise
 
-def search_file_in_temp(file_name_part):
+def search_file_in_temp(repo_name):
     # Get the path to the temporary directory
     temp_dir = tempfile.gettempdir()
+    file_name_part = f"_{repo_name}"
 
     # Compile a regex pattern to search for the file name part
     pattern = re.compile(re.escape(file_name_part), re.IGNORECASE)
@@ -124,9 +205,8 @@ def search_file_in_temp(file_name_part):
     return None
 
 def delete_temp_file(repo_url): 
-    repo_parts = repo_url.rstrip('/').split('/')
-    repo_owner = repo_parts[-2]
-    repo_name = repo_parts[-1]
+    
+    repo_owner,repo_name  = parse_repo_url(repo_url)
             
     file_part_to_search = f"_{repo_name}"
     found_file_path = search_file_in_temp(file_part_to_search)
@@ -217,3 +297,70 @@ def retrieve_relevant_code(prompt, temp_file_name, top_k=10):
     relevant_files = list(set([texts[i][0] for i in indices[0]]))
     print("Relevant files:", relevant_files)
     return relevant_texts, relevant_files, file_chunks
+
+
+def handle_repository_update(request:PullRequestRequest):
+    if not request.repo_url or not request.token or not request.source_branch or not request.prompt:
+        # raise HTTPException(status_code=400, detail="required data not recieved")
+        return 1
+    else:
+        default_branch = get_default_branch(request.repo_url, request.token)
+        if not default_branch:
+            # raise HTTPException(status_code=500 detail="failed to retrieve default branch")
+            return 2
+        
+        else:
+            destination_branch = request.destination_branch or default_branch
+            repo_owner,repo_name  = parse_repo_url(request.repo_url) 
+            found_file_path:str|None = None
+            if not request.resync:
+                found_file_path = search_file_in_temp(repo_name)
+            else:
+                delete_temp_file(request.repo_url)
+
+            repo_dir = tempfile.mkdtemp(suffix=f"_{repo_name}")  # Manually create the temp directory
+            try:
+                Repo.clone_from(request.repo_url, repo_dir, branch=default_branch)
+                repo = Repo(repo_dir)
+                new_branch = request.source_branch
+                repo.git.checkout('-b', new_branch)
+                if(not found_file_path):
+                    temp_file_name = prepare_embeddings(repo_dir,repo_name)
+                else:
+                    temp_file_name = found_file_path
+                    
+                if temp_file_name:
+                    relevant_texts, relevant_files, file_chunks = retrieve_relevant_code(request.prompt, temp_file_name)
+                    if not request.resync:
+                        # Compile the regex pattern to match folder names of the form temp.*_my_repo
+                        pattern = re.compile(rf'tmp.*_{re.escape(repo_name)}')
+                        # Example usage
+                        modified_file_paths = replace_folder_name_in_paths(relevant_files, pattern, repo_dir)
+                        relevant_files = modified_file_paths
+                    
+                    if request.action == "MODIFY":
+                        modify_existing_files(relevant_files, request.prompt)      
+                    else:  # Create a new file
+                        create_and_integrate_new_file(relevant_files, request.prompt, repo_dir)
+                else:
+                    # raise HTTPException(status_code=500, detail="something went wrong with temp file generation or fetching")
+                    return 3
+                    
+                
+                repo.git.add(all=True)
+                repo.index.commit("Automated changes based on user prompt")
+                
+                push_changes(repo, 'origin', new_branch, request.token)  # Push the changes using the authenticated URL
+                
+                result = create_pull_request_2(repo_owner,repo_name, request.token, new_branch, destination_branch)
+                if 'number' in result:
+                    # return {"message": "Pull request created successfully", "pull_request": result}
+                    return 0
+                else:
+                    # raise HTTPException(status_code=500, detail="failed to create pull request")
+                    return 4
+            finally:
+                repo.close()
+                del repo
+                time.sleep(2)  # Additional delay before cleanup
+                safe_rmtree(repo_dir)  # Safely delete the repository directory
