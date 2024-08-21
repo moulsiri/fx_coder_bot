@@ -18,6 +18,6 @@ async def create_pull_request(request: PullRequest):
 async def delete_temp_file_endpoint(request: RepositoryURL):
     if request.repo_url:
         message = delete_temp_file(request.repo_url)
-        return {"message": message}
+        return  message
     else:
         raise HTTPException(status_code=400, detail="Please provide repo_url")

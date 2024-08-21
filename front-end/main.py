@@ -14,11 +14,12 @@ on = st.toggle("Resync")
 
 
 if st.button("delete temp file"):
-    response = requests.post(f'{os.environ["Base_Url"]}/delete_temp_file/', json={'repo_url': repo_url})
+    response = requests.delete(f'http://127.0.0.1:8000/delete_temp_file/', json={'repo_url': repo_url})
     # handled the response.
-    st.info(response)
+    
     if response.status_code == 200:
-        st.success("Temporary file deleted successfully.")
+        response_data = response.json()
+        st.info(response_data)
     else:
         st.error("Failed to delete the temporary file.")
 
