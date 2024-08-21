@@ -1,5 +1,12 @@
 from pydantic import BaseModel
-from .repositoryUrl import RepositoryURL
+
+class RepositoryURL(BaseModel):
+    repo_url: str
+
+class Credentials(BaseModel, RepositoryURL):
+    access_token: str
+    username: str
+
 class PullRequest(BaseModel, RepositoryURL):
     token: str
     source_branch: str
