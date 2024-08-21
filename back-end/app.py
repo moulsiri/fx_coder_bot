@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
-from utils.utils import *
-from models import Credentials, PullRequestRequest, DeleteTemp
+from src.utils import *
+from src.models import Credentials, PullRequest, RepositoryURL
 
 app = FastAPI()
 
@@ -22,7 +22,7 @@ async def validate_credentials(credentials: Credentials):
             raise HTTPException(status_code=500 , detail="something went wrong")
     
 @app.post("/create_pull_request/")
-async def create_pull_request(request: PullRequestRequest):
+async def create_pull_request(request: PullRequest):
     case_id = handle_repository_update(request) # Todo:: not sure how to handle errors or when to raise http exceptions
     match case_id:
         case 0:
@@ -40,7 +40,7 @@ async def create_pull_request(request: PullRequestRequest):
         
 
 @app.delete("/delete_temp_file/")
-async def delete_temp_file_endpoint(request: DeleteTemp):
+async def delete_temp_file_endpoint(request: RepositoryURL):
     if request.repo_url:
         message = delete_temp_file(request.repo_url)
         return {"message": message}

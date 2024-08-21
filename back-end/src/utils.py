@@ -14,11 +14,11 @@ import re
 import shutil
 import requests
 from git import Repo, GitCommandError
-from services.query_llm import generate_code_changes
-from services.integrate_new_code import generate_newFile_based_code_changes
-from services.generate_new_code import create_new_file
-from models import PullRequestRequest, Credentials
-
+from .query_llm import generate_code_changes
+from .integrate_new_code import generate_newFile_based_code_changes
+from .generate_new_code import create_new_file
+from src.models import PullRequest, Credentials
+from fastapi import HTTPException
 
 
 load_dotenv()
@@ -37,13 +37,11 @@ def handle_validation(credentials: Credentials):
     # Get authenticated user info
     user_data = validate_user_data(headers)
     if not user_data:
-        # raise HTTPException(status_code=401, detail="Invalid token or unable to fetch user info")
-        return 1
+        raise HTTPException(status_code=401, detail="Invalid token or unable to fetch user info")
     
     # Check if the authenticated username matches the provided username
     if user_data['login'] != credentials.username:
-        # raise HTTPException(status_code=401, detail="Token does not belong to the provided username")
-        return 2
+        raise HTTPException(status_code=401, detail="Token does not belong to the provided username")
     
     # Check if the repository is accessible by the authenticated user
     repo_owner,repo_name  = parse_repo_url(credentials.repo_url)
@@ -53,14 +51,11 @@ def handle_validation(credentials: Credentials):
         # Check if the user has the necessary permissions
         repo_data = repo_response.json()
         if repo_data['private'] and not repo_data['permissions']['admin'] and not repo_data['permissions']['push'] and not repo_data['permissions']['pull']:
-            # raise HTTPException(status_code=403, detail="User does not have the required permissions to access the repository")
-            return 3
-        # return {"status": "valid"}
-        return 0
+            raise HTTPException(status_code=403, detail="User does not have the required permissions to access the repository")
+        return {"status": "valid"}
     else:
-        # raise HTTPException(status_code=401, detail="Invalid credentials or repository not accessible")
-        return 4
-
+        raise HTTPException(status_code=401, detail="Invalid credentials or repository not accessible")
+    
 def validate_user_data(headers):
     user_response = requests.get("https://api.github.com/user", headers=headers)
     if user_response.status_code != 200:
@@ -299,15 +294,13 @@ def retrieve_relevant_code(prompt, temp_file_name, top_k=10):
     return relevant_texts, relevant_files, file_chunks
 
 
-def handle_repository_update(request:PullRequestRequest):
+def handle_repository_update(request:PullRequest):
     if not request.repo_url or not request.token or not request.source_branch or not request.prompt:
-        # raise HTTPException(status_code=400, detail="required data not recieved")
-        return 1
+        raise HTTPException(status_code=400, detail="required data not recieved")
     else:
         default_branch = get_default_branch(request.repo_url, request.token)
         if not default_branch:
-            # raise HTTPException(status_code=500 detail="failed to retrieve default branch")
-            return 2
+            raise HTTPException(status_code=500 ,detail="failed to retrieve default branch")
         
         else:
             destination_branch = request.destination_branch or default_branch
@@ -343,8 +336,7 @@ def handle_repository_update(request:PullRequestRequest):
                     else:  # Create a new file
                         create_and_integrate_new_file(relevant_files, request.prompt, repo_dir)
                 else:
-                    # raise HTTPException(status_code=500, detail="something went wrong with temp file generation or fetching")
-                    return 3
+                    raise HTTPException(status_code=500, detail="something went wrong with temp file generation or fetching")
                     
                 
                 repo.git.add(all=True)
@@ -354,11 +346,10 @@ def handle_repository_update(request:PullRequestRequest):
                 
                 result = create_pull_request_2(repo_owner,repo_name, request.token, new_branch, destination_branch)
                 if 'number' in result:
-                    # return {"message": "Pull request created successfully", "pull_request": result}
-                    return 0
+                    return {"message": "Pull request created successfully", "pull_request": result}
                 else:
-                    # raise HTTPException(status_code=500, detail="failed to create pull request")
-                    return 4
+                    raise HTTPException(status_code=500, detail="failed to create pull request")
+                
             finally:
                 repo.close()
                 del repo

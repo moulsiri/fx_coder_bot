@@ -1,7 +1,6 @@
 import os
 import streamlit as st
 import requests
-from utils.utils import *
 
 # Streamlit UI
 st.title("GitHub Pull Request Creator")

@@ -1,6 +1,6 @@
 from pydantic import BaseModel
-from deleteTempFiles_model import DeleteTemp
-class PullRequestRequest(BaseModel, DeleteTemp):
+from .repositoryUrl import RepositoryURL
+class PullRequest(BaseModel, RepositoryURL):
     token: str
     source_branch: str
     destination_branch: str
