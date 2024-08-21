@@ -25,7 +25,7 @@ if st.button("delete temp file"):
     
 if st.button('Create Pull Request'):
     
-    json_to_pass = {
+    pr_json = {
         'repo_url': repo_url,
         'token': token,
         'source_branch': source_branch,
@@ -35,7 +35,7 @@ if st.button('Create Pull Request'):
         'action': 'MODIFY' if action == 'Modify existing files' else 'CREATE'
     }
     
-    response = requests.post(f'{os.environ["Base_Url"]}/create_pull_request/',json=json_to_pass)
+    response = requests.post(f'{os.environ["Base_Url"]}/create_pull_request/',json=pr_json)
     st.info(response)
     # handled the response.
     if response.status_code == 200:
