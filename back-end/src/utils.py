@@ -203,8 +203,7 @@ def delete_temp_file(repo_url):
     
     repo_owner,repo_name  = parse_repo_url(repo_url)
             
-    file_part_to_search = f"_{repo_name}"
-    found_file_path = search_file_in_temp(file_part_to_search)
+    found_file_path = search_file_in_temp(repo_name)
     if found_file_path:
         os.remove(found_file_path)
         return f"deleted found file, path - {found_file_path}"
@@ -333,7 +332,7 @@ def handle_repository_update(request:PullRequest):
                     
                     if request.action == "MODIFY":
                         modify_existing_files(relevant_files, request.prompt)      
-                    else:  # Create a new file
+                    elif request.action == "CREATE":  # Create a new file
                         create_and_integrate_new_file(relevant_files, request.prompt, repo_dir)
                 else:
                     raise HTTPException(status_code=500, detail="something went wrong with temp file generation or fetching")
