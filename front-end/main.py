@@ -1,6 +1,9 @@
 import os
 import streamlit as st
 import requests
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Streamlit UI
 st.title("GitHub Pull Request Creator")
@@ -14,7 +17,7 @@ on = st.toggle("Resync")
 
 
 if st.button("delete temp file"):
-    response = requests.delete(f'http://127.0.0.1:8000/delete_temp_file/', json={'repo_url': repo_url})
+    response = requests.delete(f'{os.environ["Base_Url"]}/delete_temp_file/', json={'repo_url': repo_url})
     # handled the response.
     
     if response.status_code == 200:
