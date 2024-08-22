@@ -17,7 +17,7 @@ on = st.toggle("Resync")
 
 
 if st.button("delete temp file"):
-    response = requests.delete(f'{os.environ["Base_Url"]}/delete_temp_file/', json={'repo_url': repo_url})
+    response = requests.delete(f'{os.environ["BASE_URL"]}/delete_temp_file/', json={'repo_url': repo_url})
     # handled the response.
     
     if response.status_code == 200:
@@ -39,7 +39,7 @@ if st.button('Create Pull Request'):
         'action': 'MODIFY' if action == 'Modify existing files' else 'CREATE'
     }
     
-    response = requests.post(f'{os.environ["Base_Url"]}/create_pull_request/',json=pr_json)
+    response = requests.post(f'{os.environ["BASE_URL"]}/create_pull_request/',json=pr_json)
     st.info(response)
     # handled the response.
     if response.status_code == 200:
