@@ -44,6 +44,6 @@ if st.button('Create Pull Request'):
     if response.status_code == 200:
         response_data = response.json()
         st.success(f"Pull Request created Successfully! PR number: {response_data['pull_request']['number']}")
-        st.write(f"PR url: {response_data['pull_request']['url']}")
+        st.write(f"PR url: {response_data['pull_request']['html_url']}")
     else:
         st.error("Failed to create PR")
