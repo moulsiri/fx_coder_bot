@@ -26,8 +26,6 @@ open_ai_key=os.environ["OPENAI_API_KEY"]
 embedding_model = os.environ["EMBEDDING_MODEL"]
 client=OpenAI(api_key=open_ai_key)
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-logging.basicConfig(level=logging.DEBUG)
-
 
 
 def handle_validation(credentials: Credentials):
@@ -277,7 +275,6 @@ def retrieve_relevant_code(prompt, temp_file_name, top_k=10):
     # Retrieve relevant texts based on the indices
     relevant_texts = [texts[i][1] for i in indices[0]]
     relevant_files = list(set([texts[i][0] for i in indices[0]]))
-    print("Relevant files:", relevant_files)
     return relevant_texts, relevant_files, file_chunks
 
 
