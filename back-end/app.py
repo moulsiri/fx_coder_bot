@@ -1,9 +1,17 @@
 from fastapi import FastAPI, HTTPException
 from src.utils import *
 from src.models import Credentials, PullRequest, RepositoryURL
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
-
+origins = ["*"]
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 @app.post("/validate_credentials/")
 async def validate_credentials(credentials: Credentials):
     status = handle_validation(credentials)
