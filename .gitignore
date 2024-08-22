@@ -6,3 +6,4 @@ back-end/src/*pycache*
 .vscode
 venv_1
 back-end/token_tracker.txt
+token_tracker.txt
