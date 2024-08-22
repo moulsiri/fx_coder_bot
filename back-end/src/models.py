@@ -3,6 +3,10 @@ from pydantic import BaseModel
 class RepositoryURL(BaseModel):
     repo_url: str
 
+class RepoList(BaseModel):
+    username: str
+    access_token: str
+    
 class Credentials(BaseModel):
     repo_url: str
     access_token: str

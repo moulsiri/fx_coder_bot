@@ -354,3 +354,50 @@ def handle_repository_update(request:PullRequest):
                 del repo
                 time.sleep(2)  # Additional delay before cleanup
                 safe_rmtree(repo_dir)  # Safely delete the repository directory
+
+def validate_user(headers):
+    user_response = requests.get("https://api.github.com/user", headers=headers)
+    if user_response.status_code != 200:
+        return None
+
+    return user_response.json()
+
+def fetch_user_repos(headers, username):
+    repos_urls = []
+    
+    # Fetch personal repos
+    page = 1
+    while True:
+        personal_repos_url = f"https://api.github.com/users/{username}/repos?page={page}&per_page=100"
+        personal_repos_response = requests.get(personal_repos_url, headers=headers)
+        if personal_repos_response.status_code == 200:
+            personal_repos = personal_repos_response.json()
+            if not personal_repos:
+                break
+            repos_urls.extend([repo['html_url'] for repo in personal_repos])
+            page += 1
+        else:
+            raise HTTPException(status_code=403, detail="Unable to fetch personal repositories")
+
+    # Fetch organization repos
+    orgs_url = "https://api.github.com/user/orgs"
+    orgs_response = requests.get(orgs_url, headers=headers)
+    if orgs_response.status_code == 200:
+        orgs = orgs_response.json()
+        for org in orgs:
+            page = 1
+            while True:
+                org_repos_url = f"https://api.github.com/orgs/{org['login']}/repos?page={page}&per_page=100"
+                org_repos_response = requests.get(org_repos_url, headers=headers)
+                if org_repos_response.status_code == 200:
+                    org_repos = org_repos_response.json()
+                    if not org_repos:
+                        break
+                    repos_urls.extend([repo['html_url'] for repo in org_repos])
+                    page += 1
+                else:
+                    raise HTTPException(status_code=403, detail=f"Unable to fetch repositories for organization {org['login']}")
+    else:
+        raise HTTPException(status_code=403, detail="Unable to fetch organizations")
+
+    return repos_urls
