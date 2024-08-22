@@ -36,7 +36,7 @@ def handle_validation(credentials: Credentials):
     # Get authenticated user info
     user_data = validate_user_data(headers)
     if not user_data:
-        return {"status": "Invalid", "message": "unable to fetch user info"}
+        return {"status": "Invalid", "message": "Unable to fetch user info. Please verify the token and username"}
     
     # Check if the authenticated username matches the provided username
     if user_data['login'] != credentials.username:
