@@ -36,13 +36,13 @@ def handle_validation(credentials: Credentials):
     # Get authenticated user info
     user_data = validate_user_data(headers)
     if not user_data:
-        return "Invalid"
+        return {"status": "Invalid", "message": "unable to fetch user info"}
     
     # Check if the authenticated username matches the provided username
     if user_data['login'] != credentials.username:
-        return "Invalid"
+        return {"status": "Invalid", "message": "The token does not belong to the given username"}
     
-    return "Valid"
+    return {"status": "valid", "message": "Success"}
     
 def validate_user_data(headers):
     user_response = requests.get("https://api.github.com/user", headers=headers)
