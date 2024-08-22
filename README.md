@@ -23,7 +23,11 @@ This project provides a streamlined solution for modifying code based on user pr
     ```venv
     streamlit run main.py
     ```
-
+5. **Run the backend application**:
+```venv
+cd back-end
+uvicorn app:app --reloa
+```
 ## Usage
 
 After following the setup instructions, the Streamlit application will be running locally. You can access it through your web browser.
