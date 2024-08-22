@@ -26,7 +26,7 @@ This project provides a streamlined solution for modifying code based on user pr
 5. **Run the backend application**:
 ```venv
 cd back-end
-uvicorn app:app --reloa
+uvicorn app:app --reload
 ```
 ## Usage
 
