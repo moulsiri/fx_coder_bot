@@ -24,6 +24,7 @@ def generate_FileName_and_extension(code):
             "If the code is related to the Dockerfile then name that file as Dockerfile"
             "If the code is related to the requirements then name that file as requirements.txt"
             "If the code is related to fastapi then name that file as app.py"
+            "If the code is related to react then name that file extension will be .js or .jsx"
             "Based on this code below,give me a relevant file name for the code and the extension in this format file_name,extension strictly excluding the '.' in extension")
         },
         {
