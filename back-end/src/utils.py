@@ -34,35 +34,23 @@ def handle_validation(credentials: Credentials):
     headers = {
         "Authorization": f"token {credentials.access_token}"
     }
+
     # Get authenticated user info
     user_data = validate_user_data(headers)
     if not user_data:
-        raise HTTPException(status_code=401, detail="Invalid token or unable to fetch user info")
+        return "Invalid"
     
     # Check if the authenticated username matches the provided username
     if user_data['login'] != credentials.username:
-        raise HTTPException(status_code=401, detail="Token does not belong to the provided username")
+        return "Invalid"
     
-    # Check if the repository is accessible by the authenticated user
-    repo_owner,repo_name  = parse_repo_url(credentials.repo_url)
-    repo_response = requests.get(f"https://api.github.com/repos/{repo_owner}/{repo_name}", headers=headers)
-    
-    if repo_response.status_code == 200:
-        # Check if the user has the necessary permissions
-        repo_data = repo_response.json()
-        if repo_data['private'] and not repo_data['permissions']['admin'] and not repo_data['permissions']['push'] and not repo_data['permissions']['pull']:
-            raise HTTPException(status_code=403, detail="User does not have the required permissions to access the repository")
-        return {"status": "valid"}
-    else:
-        raise HTTPException(status_code=401, detail="Invalid credentials or repository not accessible")
+    return "Valid"
     
 def validate_user_data(headers):
     user_response = requests.get("https://api.github.com/user", headers=headers)
     if user_response.status_code != 200:
         return None
-
-    user_data = user_response.json()
-    return user_data
+    return user_response.json()
 
 def modify_existing_files(relevant_files, prompt):
     for file_path in relevant_files:

@@ -1,6 +1,6 @@
 from fastapi import FastAPI, HTTPException
 from src.utils import *
-from src.models import Credentials, PullRequest, RepositoryURL, RepoList
+from src.models import Credentials, PullRequest, RepositoryURL
 
 app = FastAPI()
 
@@ -23,7 +23,7 @@ async def delete_temp_file_endpoint(request: RepositoryURL):
         raise HTTPException(status_code=400, detail="Please provide repo_url")
     
 @app.post("/validate_and_fetch_repos/")
-async def validate_and_fetch_repos(credentials: RepoList):
+async def validate_and_fetch_repos(credentials: Credentials):
     headers = {
         "Authorization": f"token {credentials.access_token}"
     }
