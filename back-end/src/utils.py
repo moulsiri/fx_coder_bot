@@ -19,6 +19,8 @@ from .integrate_new_code import generate_newFile_based_code_changes
 from .generate_new_code import create_new_file
 from src.schemas import PullRequest, Credentials
 from fastapi import HTTPException
+from jose import JWTError, jwt
+from datetime import datetime, timedelta
 
 from src.models import User
 
@@ -40,6 +42,21 @@ embedding_model = os.environ["EMBEDDING_MODEL"]
 client=OpenAI(api_key=open_ai_key)
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
+# JWT configuration
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+ALGORITHM = "HS256"
+ACCESS_TOKEN_EXPIRE_MINUTES = 30
+
+# Function to create JWT tokens
+def create_access_token(data: dict, expires_delta: timedelta = None):
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    return encoded_jwt
 
 def handle_validation(credentials: Credentials,db):
     headers = {
@@ -49,15 +66,6 @@ def handle_validation(credentials: Credentials,db):
     # Get authenticated user info
     user_data = validate_user_data(headers)
 
-
-    db_user=db.query(User).filter(User.username==user_data["login"]).first()
-
-    if not db_user:
-        # Save user details in the database if new
-        db_user = User(username= user_data["login"], github_token=credentials.access_token)
-        db.add(db_user)
-        db.commit()
-
     if not user_data:
         return {"status": "Invalid", "message": "Unable to fetch user info. Please verify the token and username"}
     
@@ -65,7 +73,26 @@ def handle_validation(credentials: Credentials,db):
     if user_data['login'] != credentials.username:
         return {"status": "Invalid", "message": "The token does not belong to the given username"}
     
-    return {"status": "valid", "message": "Success"}
+    db_user=db.query(User).filter(User.username==user_data["login"]).first()
+
+    if not db_user:
+        # Save user details in the database if new
+        db_user = User(username= user_data["login"], github_token=credentials.access_token)
+        db.add(db_user)
+    else:
+        # Update the GitHub token if different
+        if db_user.github_token != credentials.access_token:
+            db_user.github_token = credentials.access_token
+    
+    db.commit()
+
+    # Generate JWT token
+    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = create_access_token(
+        data={"sub": db_user.username}, expires_delta=access_token_expires
+    )
+    
+    return {"status": "valid", "message": "Success","access_token": access_token}
     
 def validate_user_data(headers):
     user_response = requests.get("https://api.github.com/user", headers=headers)

@@ -8,12 +8,6 @@ from src.models import Base
 from dotenv import load_dotenv
 
 load_dotenv()
-print("--only for checking-----------")
-print(os.environ['DB_USER'])
-print(os.environ['DB_PASSWORD'])
-print(os.environ['DB_HOST'])
-print(os.environ['DB_NAME'])
-print("----------------------")
 
 mysql_uri = "mysql://{}:{}@{}/{}".format(os.environ['DB_USER'], os.environ['DB_PASSWORD'], os.environ['DB_HOST'], os.environ['DB_NAME'])
 
