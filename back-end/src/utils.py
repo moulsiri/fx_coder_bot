@@ -17,9 +17,22 @@ from git import Repo, GitCommandError
 from .query_llm import generate_code_changes
 from .integrate_new_code import generate_newFile_based_code_changes
 from .generate_new_code import create_new_file
-from src.models import PullRequest, Credentials
+from src.schemas import PullRequest, Credentials
 from fastapi import HTTPException
 
+from src.models import User
+
+# from src.database import SessionLocal, engine
+# from sqlalchemy.orm import Session
+
+
+# # Dependency
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
 
 load_dotenv()
 open_ai_key=os.environ["OPENAI_API_KEY"]
@@ -28,13 +41,23 @@ client=OpenAI(api_key=open_ai_key)
 text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
 
 
-def handle_validation(credentials: Credentials):
+def handle_validation(credentials: Credentials,db):
     headers = {
         "Authorization": f"token {credentials.access_token}"
     }
 
     # Get authenticated user info
     user_data = validate_user_data(headers)
+
+
+    db_user=db.query(User).filter(User.username==user_data["login"]).first()
+
+    if not db_user:
+        # Save user details in the database if new
+        db_user = User(username= user_data["login"], github_token=credentials.access_token)
+        db.add(db_user)
+        db.commit()
+
     if not user_data:
         return {"status": "Invalid", "message": "Unable to fetch user info. Please verify the token and username"}
     
@@ -348,7 +371,10 @@ def validate_user(headers):
     return user_response.json()
 
 def fetch_user_repos(headers, username):
-    repos_urls = []
+    repos_urls = {
+        "personal_repos":[],
+        "org_repos":[]
+    }
     
     # Fetch personal repos
     page = 1
@@ -359,7 +385,9 @@ def fetch_user_repos(headers, username):
             personal_repos = personal_repos_response.json()
             if not personal_repos:
                 break
-            repos_urls.extend([repo['html_url'] for repo in personal_repos])
+            repos_urls['personal_repos'].extend(
+                    [{"name": repo['name'], "html_url": repo['html_url']} for repo in personal_repos]
+            )
             page += 1
         else:
             raise HTTPException(status_code=403, detail="Unable to fetch personal repositories")
@@ -378,7 +406,9 @@ def fetch_user_repos(headers, username):
                     org_repos = org_repos_response.json()
                     if not org_repos:
                         break
-                    repos_urls.extend([repo['html_url'] for repo in org_repos])
+                    repos_urls['org_repos'].extend(
+                    [{"name": repo['name'], "html_url": repo['html_url']} for repo in org_repos]
+                    )
                     page += 1
                 else:
                     raise HTTPException(status_code=403, detail=f"Unable to fetch repositories for organization {org['login']}")

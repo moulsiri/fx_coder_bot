@@ -1,7 +1,10 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException,Depends
 from src.utils import *
-from src.models import Credentials, PullRequest, RepositoryURL
+from src.schemas import Credentials, PullRequest, RepositoryURL
 from fastapi.middleware.cors import CORSMiddleware
+
+from src.database import SessionLocal, engine
+from sqlalchemy.orm import Session
 
 app = FastAPI()
 origins = ["*"]
@@ -12,9 +15,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Dependency
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
 @app.post("/validate_credentials/")
-async def validate_credentials(credentials: Credentials):
-    status = handle_validation(credentials)
+async def validate_credentials(credentials: Credentials,db: Session = Depends(get_db)):
+    status = handle_validation(credentials,db)
     return status
     
 @app.post("/create_pull_request/")

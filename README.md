@@ -31,3 +31,13 @@ uvicorn app:app --reload
 ## Usage
 
 After following the setup instructions, the Streamlit application and fastapi application will be running locally. You can access it through your web browser.
+
+
+6. **Migrations:
+
+```venv
+alembic revision --autogenerate -m "Initial migration"
+```
+```venv
+alembic upgrade head
+```
