@@ -19,7 +19,7 @@ async def validate_credentials(credentials: Credentials):
     
 @app.post("/create_pull_request/")
 async def create_pull_request(request: PullRequest):
-    message = handle_repository_update(request) # Todo:: not sure how to handle errors or when to raise http exceptions
+    message = handle_repository_update(request)
     return message
 
 @app.delete("/delete_temp_file/")
