@@ -17,8 +17,10 @@ from git import Repo, GitCommandError
 from .query_llm import generate_code_changes
 from .integrate_new_code import generate_newFile_based_code_changes
 from .generate_new_code import create_new_file
+from .generate_fileCreation_decision import generate_FileCreation_Decision
 from src.models import PullRequest, Credentials
 from fastapi import HTTPException
+import sys
 
 
 load_dotenv()
@@ -49,6 +51,37 @@ def validate_user_data(headers):
     if user_response.status_code != 200:
         return None
     return user_response.json()
+
+
+def get_repo_tree_structure(repo_url, github_token, default_branch):
+    
+    owner, repo_name = parse_repo_url(repo_url)
+
+    print(f"Parsed owner: {owner}")  # Debug statement
+    print(f"Parsed repository name: {repo_name}")  # Debug statement
+
+    headers = {
+        'Authorization': f'token {github_token}',
+        'Accept': 'application/vnd.github.v3+json'
+    }
+
+    # GitHub API endpoint to get the repository tree
+    api_url = f"https://api.github.com/repos/{owner}/{repo_name}/git/trees/{default_branch}?recursive=1"
+    print(f"Fetching repository tree from URL: {api_url}")  # Debug statement
+
+    response = requests.get(api_url, headers=headers)
+    item_paths = []
+    if response.status_code == 200:
+        tree = response.json()['tree']
+        for item in tree:
+            print(item['path'])
+            item_paths.append(item['path'])
+        return item_paths
+    else:
+        print(f"Failed to fetch the repository tree. Status code: {response.status_code}", file=sys.stderr)
+        print(f"Response: {response.json()}")  # Debug information
+        return None
+        
 
 def modify_existing_files(relevant_files, prompt):
     for file_path in relevant_files:
@@ -240,7 +273,7 @@ def chunk_and_embed_code(code_files):
 
 def prepare_embeddings(repo_dir,repo_name):
     code_files = [os.path.join(dp, f) for dp, dn, filenames in os.walk(repo_dir)
-                  for f in filenames if f.endswith(('.py', '.js', '.html', '.css', '.tsx', '.jsx', '.scss', '.ts'))
+                  for f in filenames if f.endswith(('.py', '.txt', '.js', '.html', '.css', '.tsx', '.jsx', '.scss', '.ts'))
                   and '.git' not in dp]
     texts, embeddings, file_chunks = chunk_and_embed_code(code_files)
 
@@ -314,10 +347,19 @@ def handle_repository_update(request:PullRequest):
                         # Example usage
                         modified_file_paths = replace_folder_name_in_paths(relevant_files, pattern, repo_dir)
                         relevant_files = modified_file_paths
+                    print(relevant_files)
+                    relevant_files_code = []
+                    for file_path in relevant_files:
+                        with open(file_path, "r") as f:
+                            relevant_files_code.append(f.read())
                     
-                    if request.action == "MODIFY":
+                    print(relevant_files_code)
+                    repo_tree = get_repo_tree_structure(request.repo_url, request.token, default_branch)
+                    create_new_file = generate_FileCreation_Decision(repo_tree,request.prompt,relevant_files_code)
+                    print("Decision:",create_new_file)
+                    if not create_new_file:
                         modify_existing_files(relevant_files, request.prompt)      
-                    elif request.action == "CREATE":  # Create a new file
+                    elif create_new_file:  # Create a new file
                         create_and_integrate_new_file(relevant_files, request.prompt, repo_dir)
                 else:
                     raise HTTPException(status_code=500, detail="something went wrong with temp file generation or fetching")

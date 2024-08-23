@@ -33,6 +33,8 @@ def generate_newFile_based_code_changes(prompt, original_code, new_file_code, ne
             "Maintain the integrity of the original code without introducing any unnecessary elements."
             "Strictly do not remove any imports from the original code"
             "If the function or class from the new file is not called in the original code, refrain from adding import statements."
+            "strictly do not modify any files that contain package information like requirements.txt or package.json or package-lock.json unless needed"
+            "do not add any other lines except code lines or comments in any file"
             "Return the code as it is if no integration is necessary."
         )
     },

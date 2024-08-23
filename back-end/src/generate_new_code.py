@@ -20,7 +20,7 @@ def create_new_file(prompt, repo_dir):
                 "Strictly do not include the main function or any call to it in the new file."
                 "Provide the full content of the file, including necessary imports and code structure."
                 "Do not add any comments or code blocks that start with '''python''' or any other programming language."
-                "If the prompt is related to creating requirements file then simply create a requirements.txt file with libraries asked in the prompt.Also dont include requirements.txt in the code."
+                "If the prompt is related to creating requirements file then simply create a requirements.txt file with libraries asked in the prompt. Also dont include requirements.txt in the code."
             )
         },
         {

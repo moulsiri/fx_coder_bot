@@ -11,7 +11,7 @@ repo_url = st.text_input("GitHub Repository URL", "")
 token = st.text_input("GitHub Personal Access Token", type="password")
 source_branch = st.text_input("Feature branch", "")
 destination_branch = st.text_input("Destination Branch (leave empty to use default branch)")
-action = st.radio("Action", ("Modify existing files", "Create a new file"))
+# action = st.radio("Action", ("Modify existing files", "Create a new file"))
 prompt = st.text_area("Prompt", "")
 on = st.toggle("Resync")
 
@@ -36,7 +36,6 @@ if st.button('Create Pull Request'):
         'destination_branch': destination_branch,
         'prompt': prompt,
         'resync': on,
-        'action': 'MODIFY' if action == 'Modify existing files' else 'CREATE'
     }
     
     response = requests.post(f'{os.environ["BASE_URL"]}/create_pull_request/',json=pr_json)

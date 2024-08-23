@@ -12,6 +12,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
 @app.post("/validate_credentials/")
 async def validate_credentials(credentials: Credentials):
     status = handle_validation(credentials)
